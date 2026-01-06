@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product, User, Admin, Order, AdminRole, PageView, OrderStatus, Comment, SiteSettings, AdminSection, SupportTicket, SupportMessage, TicketStatus } from '../types';
+import { Product, User, Admin, Order, AdminRole, PageView, OrderStatus, Comment, SiteSettings, AdminSection, SupportTicket, SupportMessage, TicketStatus, GithubConnection } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_USERS, INITIAL_ADMINS, SITE_NAME, INITIAL_SITE_SETTINGS, INITIAL_CATEGORIES } from '../constants';
 
 
@@ -65,6 +65,17 @@ const translations = {
     noTickets: 'شما هیچ تیکتی ندارید.',
     ticketCreatedSuccess: 'تیکت شما با موفقیت ایجاد شد.',
     lastUpdate: 'آخرین بروزرسانی',
+    connectedStorages: 'محل‌های ذخیره‌سازی متصل',
+    addNewConnection: 'افزودن اتصال جدید',
+    editConnection: 'ویرایش اتصال',
+    active: 'فعال',
+    activate: 'فعال‌سازی',
+    delete: 'حذف',
+    confirmDeleteConnection: 'آیا از حذف این اتصال اطمینان دارید؟',
+    validatingConnection: 'در حال اعتبارسنجی اتصال...',
+    validationSuccess: 'اتصال موفقیت‌آمیز بود!',
+    validationError: 'اعتبارسنجی ناموفق بود. آدرس و توکن را بررسی کنید.',
+    repoName: 'نام ریپازیتوری',
   },
   en: {
     adminPanel: 'Admin Panel',
@@ -126,6 +137,17 @@ const translations = {
     noTickets: 'You have no support tickets.',
     ticketCreatedSuccess: 'Your ticket has been created successfully.',
     lastUpdate: 'Last Update',
+    connectedStorages: 'Connected Storages',
+    addNewConnection: 'Add New Connection',
+    editConnection: 'Edit Connection',
+    active: 'Active',
+    activate: 'Activate',
+    delete: 'Delete',
+    confirmDeleteConnection: 'Are you sure you want to delete this connection?',
+    validatingConnection: 'Validating connection...',
+    validationSuccess: 'Connection successful!',
+    validationError: 'Validation failed. Check URL and Token.',
+    repoName: 'Repository Name',
   }
 };
 
@@ -195,8 +217,12 @@ interface AppContextType {
   navigate: (page: PageView) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  dataStorageDestination: string;
-  setDataStorageDestination: (destination: string) => void;
+  githubConnections: GithubConnection[];
+  addGithubConnection: (url: string, pat: string) => Promise<boolean>;
+  updateGithubConnection: (id: string, url: string, pat: string) => Promise<boolean>;
+  deleteGithubConnection: (id: string) => void;
+  activeStorageId: string;
+  setActiveStorageId: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -212,7 +238,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentUser, setCurrentUser] = usePersistentState<User | null>('currentUser', null);
   const [currentAdmin, setCurrentAdmin] = usePersistentState<Admin | null>('currentAdmin', null);
   const [categories, setCategories] = usePersistentState<string[]>('categories', INITIAL_CATEGORIES);
-  const [dataStorageDestination, setDataStorageDestination] = usePersistentState<string>('dataStorageDestination', 'local');
+  const [githubConnections, setGithubConnections] = usePersistentState<GithubConnection[]>('githubConnections', []);
+  const [activeStorageId, setActiveStorageId] = usePersistentState<string>('activeStorageId', 'local');
   const [page, setPage] = useState<PageView>({ view: 'home' });
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -414,6 +441,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ));
   };
 
+  // Github Storage Management
+  const validateConnection = (repoUrl: string, pat: string): Promise<boolean> => {
+      return new Promise(resolve => {
+          setTimeout(() => {
+              const isUrlLikeGithub = repoUrl.toLowerCase().includes('github.com/');
+              const isPatLikeGithub = pat.startsWith('ghp_');
+              resolve(isUrlLikeGithub && isPatLikeGithub);
+          }, 1500);
+      });
+  };
+
+  const parseRepoName = (url: string): string => {
+      try {
+          const path = new URL(url).pathname;
+          const parts = path.split('/').filter(p => p);
+          if (parts.length >= 2) {
+              return `${parts[0]}/${parts[1].replace('.git', '')}`;
+          }
+      } catch (e) { /* fallthrough */ }
+      return 'Invalid URL';
+  };
+
+  const addGithubConnection = async (repoUrl: string, pat: string): Promise<boolean> => {
+      const isValid = await validateConnection(repoUrl, pat);
+      if (isValid) {
+          const newConnection: GithubConnection = {
+              id: `gh_${Date.now()}`,
+              name: parseRepoName(repoUrl),
+              repoUrl,
+              pat,
+          };
+          setGithubConnections(prev => [...prev, newConnection]);
+      }
+      return isValid;
+  };
+  
+  const updateGithubConnection = async (id: string, repoUrl: string, pat: string): Promise<boolean> => {
+    const isValid = await validateConnection(repoUrl, pat);
+    if(isValid) {
+        setGithubConnections(prev => prev.map(conn => 
+            conn.id === id ? { ...conn, repoUrl, pat, name: parseRepoName(repoUrl) } : conn
+        ));
+    }
+    return isValid;
+  };
+
+  const deleteGithubConnection = (id: string) => {
+    if (activeStorageId === id) {
+        setActiveStorageId('local');
+    }
+    setGithubConnections(prev => prev.filter(conn => conn.id !== id));
+  };
+
+
   const navigate = (newPage: PageView) => {
     if(newPage.view !== 'home') setSearchTerm('');
     setPage(newPage);
@@ -432,7 +513,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     supportTickets, createSupportTicket, addSupportMessage, updateTicketStatus,
     page, navigate,
     searchTerm, setSearchTerm,
-    dataStorageDestination, setDataStorageDestination
+    githubConnections, addGithubConnection, updateGithubConnection, deleteGithubConnection,
+    activeStorageId, setActiveStorageId
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

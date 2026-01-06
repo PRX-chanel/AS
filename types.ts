@@ -117,6 +117,13 @@ export interface SiteSettings {
     };
 }
 
+export interface GithubConnection {
+  id: string;
+  name: string; // e.g., "user/repo"
+  repoUrl: string;
+  pat: string;
+}
+
 export type PageView =
   | { view: 'home' }
   | { view: 'product'; productId: number }
