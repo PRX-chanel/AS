@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura - Luxury Emporium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-gold': 'var(--brand-gold)',
+              'brand-dark': 'var(--brand-dark)',
+              'brand-light': 'var(--brand-light)',
+              'brand-gray': 'var(--brand-gray)',
+            },
+            fontFamily: {
+              'sans': ['var(--font-family)', 'sans-serif'],
+              'serif': ['Playfair Display', 'serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;700;800&family=Vazirmatn:wght@400;700;800&display=swap" rel="stylesheet">
+    <style id="dynamic-styles">
+      :root {
+        --brand-gold: #d4af37;
+        --brand-dark: #1a1a1a;
+        --brand-light: #f5f5f5;
+        --brand-gray: #333333;
+        --font-family: 'Vazirmatn';
+        --base-font-size: 16px;
+      }
+    </style>
+    <style>
+      body {
+        background-color: var(--brand-dark);
+        color: var(--brand-light);
+        font-family: var(--font-family), sans-serif;
+        font-size: var(--base-font-size);
+        transition: background-color 0.5s ease;
+      }
+      .theme-glass {
+        overflow: hidden;
+        position: relative;
+      }
+      .theme-glass::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(45deg, #2c003e, #6a0dad, #1e004c, #003a70);
+        background-size: 400% 400%;
+        animation: gradientAnimation 15s ease infinite;
+        z-index: -1;
+      }
+      @keyframes gradientAnimation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      .glass-card {
+        background: rgba(26, 26, 26, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(212, 175, 55, 0.2);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
